@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drum Key Drums</title>
+<style>
+  :root {
+    --body: #e9e1cf;
+    --panel: #d8ceb6;
+    --ink: #2b2620;
+    --pad: #f4efe3;
+    --shadow: #a89c80;
+    --kick: #e2582b;
+    --snare: #f0b429;
+    --hat: #5a9e8f;
+    --crash: #3d6fb6;
+    --tom: #8a5a9e;
+    --bird: #c9483b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--body);
+    color: var(--ink);
+    font-family: "SF Mono", ui-monospace, Menlo, "Courier New", monospace;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px 24px 76px;
+    user-select: none;
+  }
+  .machine {
+    background: var(--panel);
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: 8px 8px 0 var(--ink);
+    padding: 22px 24px 26px;
+    width: min(860px, 100%);
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 10px; margin-bottom: 20px;
+  }
+  h1 { margin: 0; font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; }
+  .hint { font-size: 12px; letter-spacing: 0.08em; opacity: 0.7; }
+  .led {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #6b5f4a; border: 2px solid var(--ink);
+    display: inline-block; vertical-align: middle; margin-left: 8px;
+    transition: background 60ms;
+  }
+  .led.on { background: #ff3b1f; box-shadow: 0 0 10px #ff3b1f; }
+  .row { display: grid; gap: 14px; margin-bottom: 14px; }
+  .row.top { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .row.mid, .row.birds { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tom { min-width: 0; }
+  .tom .pad { height: 126px; }
+  .tune {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px; padding: 0 2px;
+  }
+  .tune input {
+    flex: 1; min-width: 0; margin: 0;
+    -webkit-appearance: none; appearance: none;
+    height: 6px; background: var(--ink); border-radius: 3px; cursor: pointer;
+  }
+  .tune input::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 22px; border-radius: 3px;
+    background: var(--pad); border: 3px solid var(--ink);
+  }
+  .tune input::-moz-range-thumb {
+    width: 10px; height: 18px; border-radius: 3px;
+    background: var(--pad); border: 3px solid var(--ink);
+  }
+  .tune output { font-size: 11px; width: 5.5ch; text-align: right; }
+  .header-right { display: flex; align-items: baseline; gap: 14px; }
+  .tab-btn, .small-btn {
+    font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink); background: var(--pad);
+    border: 3px solid var(--ink); border-radius: 8px;
+    box-shadow: 0 3px 0 var(--ink);
+    padding: 5px 10px; cursor: pointer;
+  }
+  .tab-btn:active, .small-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  .tab-btn.on { background: var(--crash); color: var(--pad); }
+  .editor[hidden], #kit[hidden] { display: none; }
+  .editor-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+  .editor h2 { margin: 0; font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; flex: 1; }
+  .back-btn { background: var(--kick); color: var(--pad); }
+  .editor h3 {
+    margin: 18px 0 8px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    border-top: 3px solid var(--ink); padding-top: 12px;
+  }
+  .editor .sub { font-weight: 400; letter-spacing: 0.06em; text-transform: none; opacity: 0.65; margin-left: 6px; }
+  .ride-pad { width: 180px; height: 84px; flex: none; }
+  .ride-pad .key { font-size: 30px; }
+  .ctl {
+    display: grid; grid-template-columns: 170px minmax(0, 1fr) 86px 40px;
+    align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px;
+  }
+  .ctl .unit { opacity: 0.65; font-size: 11px; }
+  .ctl input[type="number"] {
+    font: inherit; font-size: 12px; width: 100%;
+    background: var(--pad); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 6px; padding: 4px 6px;
+    user-select: text;
+  }
+  .ctl .remove {
+    font: inherit; font-size: 14px; font-weight: 700; background: none; border: none;
+    color: var(--ink); cursor: pointer; padding: 0;
+  }
+  .ctl .remove:disabled { opacity: 0.25; cursor: default; }
+  .controls { margin-top: 12px; }
+  input[type="range"] {
+    min-width: 0; margin: 0; width: 100%;
+    -webkit-appearance: none; appearance: none;
+    height: 6px; background: var(--ink); border-radius: 3px; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 22px; border-radius: 3px;
+    background: var(--pad); border: 3px solid var(--ink);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 10px; height: 18px; border-radius: 3px;
+    background: var(--pad); border: 3px solid var(--ink);
+  }
+  .editor-foot { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+  .saved { font-size: 11px; opacity: 0.6; letter-spacing: 0.06em; }
+  .readout {
+    margin: 12px 0 0; padding: 10px 12px;
+    background: var(--pad); border: 2px dashed var(--ink); border-radius: 8px;
+    font: inherit; font-size: 11px; line-height: 1.5; white-space: pre-wrap;
+    user-select: text;
+  }
+  .row.bot { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; }
+  .pad {
+    position: relative;
+    background: var(--pad);
+    border: 3px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 0 6px 0 var(--ink);
+    padding: 14px 16px;
+    height: 110px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    cursor: pointer;
+    transition: transform 50ms, box-shadow 50ms, background 120ms;
+    overflow: hidden;
+  }
+  .pad::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+    background: var(--c);
+    border-right: 3px solid var(--ink);
+  }
+  .pad .key {
+    font-size: 40px; font-weight: 800; line-height: 1; padding-left: 10px;
+  }
+  .pad .name {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; padding-left: 10px;
+  }
+  .pad.hit {
+    transform: translateY(5px);
+    box-shadow: 0 1px 0 var(--ink);
+    background: var(--c);
+  }
+  .row.bot .pad { height: 130px; }
+  .hz { display: block; margin-top: 3px; font-weight: 700; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+  footer { margin-top: 18px; font-size: 11px; letter-spacing: 0.08em; opacity: 0.6; text-align: center; }
+  .credits {
+    margin-top: 18px; padding-top: 14px;
+    border-top: 3px solid var(--ink);
+    font-size: 12px; line-height: 1.5;
+  }
+  .credits summary { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .credits[open] summary { margin-bottom: 8px; }
+  .credits p { margin: 0 0 8px; }
+  .credits ul { margin: 0; padding-left: 18px; }
+  .credits b { font-weight: 700; margin-right: 4px; }
+  .credits li { margin-bottom: 3px; }
+  .credits a.src {
+    font-weight: 700; color: var(--crash); text-decoration: none;
+    margin-left: 4px; white-space: nowrap;
+  }
+  .credits a.src:hover { text-decoration: underline; }
+  @media print {
+    body { padding: 0; }
+    .machine { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="machine">
+    <header>
+      <h1>Drum Key Drums <span class="led" id="led"></span></h1>
+      <div class="header-right">
+        <span class="hint" id="hint">press any key to start</span>
+        <button type="button" class="tab-btn" id="editToggle">Edit ride</button>
+      </div>
+    </header>
+
+    <div id="kit">
+    <div class="row top">
+      <div class="tom">
+        <div class="pad" data-key="3" style="--c: var(--tom)"><span class="key">3</span><span class="name">Highest tom <span class="hz" data-hz="3"></span></span></div>
+        <div class="tune"><input type="range" min="-7" max="7" step="0.1" value="0" data-tune="3"><output>0.0</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="4" style="--c: var(--tom)"><span class="key">4</span><span class="name">Higher tom <span class="hz" data-hz="4"></span></span></div>
+        <div class="tune"><input type="range" min="-7" max="7" step="0.1" value="0" data-tune="4"><output>0.0</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="5" style="--c: var(--tom)"><span class="key">5</span><span class="name">High tom <span class="hz" data-hz="5"></span></span></div>
+        <div class="tune"><input type="range" min="-7" max="7" step="0.1" value="0" data-tune="5"><output>0.0</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="6" style="--c: var(--tom)"><span class="key">6</span><span class="name">Mid tom <span class="hz" data-hz="6"></span></span></div>
+        <div class="tune"><input type="range" min="-7" max="7" step="0.1" value="0" data-tune="6"><output>0.0</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="7" style="--c: var(--tom)"><span class="key">7</span><span class="name">Floor tom <span class="hz" data-hz="7"></span></span></div>
+        <div class="tune"><input type="range" min="-7" max="7" step="0.1" value="0" data-tune="7"><output>0.0</output></div>
+      </div>
+    </div>
+    <div class="row birds">
+      <div class="tom">
+        <div class="pad" data-key="r" style="--c: var(--bird)"><span class="key">R</span><span class="name">Cardinal</span></div>
+        <div class="tune"><input type="range" min="-1" max="1" step="0.05" value="0" data-speed="r"><output>1.00×</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="t" style="--c: var(--bird)"><span class="key">T</span><span class="name">Crow</span></div>
+        <div class="tune"><input type="range" min="-1" max="1" step="0.05" value="0" data-speed="t"><output>1.00×</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="y" style="--c: var(--bird)"><span class="key">Y</span><span class="name">Sparrow</span></div>
+        <div class="tune"><input type="range" min="-1" max="1" step="0.05" value="0" data-speed="y"><output>1.00×</output></div>
+      </div>
+      <div class="tom">
+        <div class="pad" data-key="u" style="--c: var(--bird)"><span class="key">U</span><span class="name">Red-tailed hawk</span></div>
+        <div class="tune"><input type="range" min="-1" max="1" step="0.05" value="0" data-speed="u"><output>1.00×</output></div>
+      </div>
+    </div>
+    <div class="row mid">
+      <div class="pad" data-key="f" style="--c: var(--crash)"><span class="key">F</span><span class="name">Crash</span></div>
+      <div class="pad" data-key="g" style="--c: var(--hat)"><span class="key">G</span><span class="name">Open hi-hat</span></div>
+      <div class="pad" data-key="h" style="--c: var(--hat)"><span class="key">H</span><span class="name">Closed hi-hat</span></div>
+      <div class="pad" data-key="j" style="--c: var(--crash)"><span class="key">J</span><span class="name">Ride</span></div>
+    </div>
+    <div class="row bot">
+      <div class="pad" data-key="v" style="--c: var(--snare)"><span class="key">V / B</span><span class="name">Snare</span></div>
+      <div class="pad" data-key="c" style="--c: var(--kick)"><span class="key">C / N</span><span class="name">Bass drum</span></div>
+    </div>
+
+    <footer>keys or click the pads</footer>
+    </div>
+
+    <section id="rideEditor" class="editor" hidden>
+      <div class="editor-head">
+        <button type="button" class="small-btn back-btn" id="backToKit">← Back to drums</button>
+        <h2>Edit ride</h2>
+        <div class="pad ride-pad" data-key="j" style="--c: var(--crash)"><span class="key">J</span><span class="name">Hit ride</span></div>
+      </div>
+
+      <h3>Tones <span class="sub">the metallic ping</span></h3>
+      <div id="toneRows"></div>
+      <button type="button" class="small-btn" id="addTone">+ Add tone</button>
+
+      <div class="controls" id="toneControls"></div>
+
+      <h3>Wash <span class="sub">the hiss underneath</span></h3>
+      <div class="controls" id="washControls"></div>
+
+      <div class="editor-foot">
+        <button type="button" class="small-btn" id="resetRide">Reset to defaults</button>
+        <span class="saved">Changes save automatically</span>
+      </div>
+      <pre class="readout" id="rideReadout"></pre>
+    </section>
+
+    <details class="credits">
+      <summary>Where the sounds come from</summary>
+      <p>No recordings or sample packs. Every sound is generated live in your browser with the Web Audio API that's built into the browser, then run through light saturation for a lo-fi edge. The sounds were designed from general sound-synthesis know-how, not copied from one page. Each [About] link is a reference: for drums, an article explaining the same technique; for birds, real recordings of that bird to compare against.</p>
+      <ul>
+        <li><b>Bass drum</b> sine wave sweeping 150 to 45 Hz <a class="src" href="https://www.soundonsound.com/techniques/practical-bass-drum-synthesis" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Snare</b> filtered white noise plus a short 200 Hz tone <a class="src" href="https://www.soundonsound.com/techniques/practical-snare-drum-synthesis" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Hi-hats</b> white noise through a high-pass filter; open rings longer and is choked by closed <a class="src" href="https://www.soundonsound.com/techniques/practical-cymbal-synthesis" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Crash</b> long burst of high-passed, peaked white noise <a class="src" href="https://www.soundonsound.com/techniques/synthesizing-realistic-cymbals" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Ride</b> six square-wave tones through a high-pass filter, under a long, bright noise wash <a class="src" href="https://www.soundonsound.com/techniques/practical-cymbal-synthesis" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Toms</b> sine waves with a pitch drop, tuned by the sliders <a class="src" href="https://www.soundonsound.com/techniques/synthesizing-drums-bass-drum" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Cardinal</b> three down-sliding whistles, "cheer cheer cheer" <a class="src" href="https://www.allaboutbirds.org/guide/Northern_Cardinal/sounds" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Crow</b> two buzzy, raspy "caws" <a class="src" href="https://www.allaboutbirds.org/guide/American_Crow/sounds" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Sparrow</b> two chips, a quick trill and a short buzz <a class="src" href="https://www.allaboutbirds.org/guide/Song_Sparrow/sounds" target="_blank" rel="noopener">[About]</a></li>
+        <li><b>Red-tailed hawk</b> one raspy scream that slides down in pitch <a class="src" href="https://www.allaboutbirds.org/guide/Red-tailed_Hawk/sounds" target="_blank" rel="noopener">[About]</a></li>
+      </ul>
+    </details>
+  </div>
+
+<script>
+  let ctx, master, noiseBuf;
+
+  function init() {
+    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Light saturation for a lo-fi edge
+    const shaper = ctx.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) {
+      const x = i / 512 - 1;
+      curve[i] = Math.tanh(x * 1.8);
+    }
+    shaper.curve = curve;
+    master = ctx.createGain();
+    master.gain.value = 0.8;
+    master.connect(shaper).connect(ctx.destination);
+
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+
+    document.getElementById("hint").textContent = "ready";
+  }
+
+  function env(peak, decay, t, dest = master) {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(peak, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    g.connect(dest);
+    return g;
+  }
+
+  function noise(t, dur) {
+    const s = ctx.createBufferSource();
+    s.buffer = noiseBuf;
+    s.start(t);
+    s.stop(t + dur);
+    return s;
+  }
+
+  function filter(type, freq, q = 1) {
+    const f = ctx.createBiquadFilter();
+    f.type = type; f.frequency.value = freq; f.Q.value = q;
+    return f;
+  }
+
+  function drum(startHz, endHz, decay, peak, t) {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(startHz, t);
+    o.frequency.exponentialRampToValueAtTime(endHz, t + decay * 0.6);
+    o.connect(env(peak, decay, t));
+    o.start(t); o.stop(t + decay);
+  }
+
+  // One shaped note for bird calls: pitch slides f0 → f1, quick fade in, hold, fade out
+  function note(type, f0, f1, start, dur, peak, dest = master) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, start);
+    o.frequency.exponentialRampToValueAtTime(f1, start + dur);
+    const g = ctx.createGain();
+    const a = Math.min(0.02, dur * 0.25);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(peak, start + a);
+    g.gain.setValueAtTime(peak, start + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g).connect(dest);
+    o.start(start); o.stop(start + dur + 0.01);
+    return o;
+  }
+
+  // Ride settings: edited live from the Edit ride page
+  const rideDefaults = {
+    tones: [908, 1376, 1771, 1776, 2362, 3141],  // Hz; 1771 + 1776 beat against each other
+    toneVolume: 0.03,
+    toneBrightness: 3230,           // Hz; high-pass cutoff for the tones
+    ringTime: 1.45,                 // seconds
+    washVolume: 0.26,
+    washBrightness: 9300,           // Hz; high-pass cutoff for the hiss
+    washFade: 3.25,                 // seconds
+  };
+  const ride = JSON.parse(JSON.stringify(rideDefaults));
+  try {
+    const saved = JSON.parse(localStorage.getItem("drumKeyRide"));
+    if (saved && Array.isArray(saved.tones)) Object.assign(ride, saved);
+  } catch (e) {}
+
+  const sounds = {
+    c(t) { drum(150, 45, 0.45, 1.2, t); },
+    v(t) {
+      noise(t, 0.22).connect(filter("highpass", 1200)).connect(env(0.7, 0.2, t));
+      const o = ctx.createOscillator();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(200, t);
+      o.frequency.exponentialRampToValueAtTime(120, t + 0.1);
+      o.connect(env(0.6, 0.12, t));
+      o.start(t); o.stop(t + 0.12);
+    },
+    h(t) {
+      chokeOpenHat(t);
+      noise(t, 0.06).connect(filter("highpass", 7500)).connect(env(0.45, 0.05, t));
+    },
+    g(t) {
+      chokeOpenHat(t);
+      const g = env(0.4, 0.45, t);
+      const s = noise(t, 0.5);
+      s.connect(filter("highpass", 7000)).connect(g);
+      openHat = { g, s };
+    },
+    f(t) {
+      noise(t, 1.8).connect(filter("highpass", 4000)).connect(filter("peaking", 7000, 0.8)).connect(env(0.55, 1.7, t));
+    },
+    j(t) {
+      // Plain ride: a few metallic tones through a high-pass filter, plus a light noise wash
+      const r = ride;
+      const ping = env(r.toneVolume, r.ringTime, t);
+      const hp = filter("highpass", r.toneBrightness);
+      hp.connect(ping);
+      r.tones.forEach(f => {
+        const o = ctx.createOscillator();
+        o.type = "square";
+        o.frequency.value = f;
+        o.connect(hp);
+        o.start(t); o.stop(t + r.ringTime);
+      });
+      noise(t, r.washFade + 0.1).connect(filter("highpass", r.washBrightness)).connect(env(r.washVolume, r.washFade, t));
+    },
+    // Bird calls: every time offset and length is divided by that bird's speed slider,
+    // so the call plays faster or slower without changing its pitch.
+    // Each call plays into its own output (out) so a repeat press can cut it off.
+    // Cardinal: three clear down-slurred whistles, "cheer cheer cheer",
+    // each sliding from about 12,000 down to 6,000 Hz
+    r(t, out) {
+      const d = 1 / birdSpeed("r");
+      for (let i = 0; i < 3; i++) note("sine", 12000, 6000, t + i * 0.24 * d, 0.19 * d, 0.22, out);
+    },
+    // Crow: two harsh "caws" — buzzy sawtooth, roughened by fast wobble, shaped by a nasal filter
+    t(t, out) {
+      const d = 1 / birdSpeed("t");
+      [0, 0.45].forEach(off => {
+        const s = off * d, len = 0.34 * d;
+        const bp = filter("bandpass", 1300, 2.5);
+        bp.connect(out);
+        const o = note("sawtooth", 620, 520, t + s, len, 0.5, bp);
+        const lfo = ctx.createOscillator();
+        const depth = ctx.createGain();
+        lfo.frequency.value = 55;
+        depth.gain.value = 60;
+        lfo.connect(depth).connect(o.frequency);
+        lfo.start(t + s); lfo.stop(t + s + len + 0.02);
+        noise(t + s, len).connect(filter("bandpass", 1800, 1.5)).connect(env(0.08, len, t + s, out));
+      });
+    },
+    // Sparrow: two bright chips, then a quick trill and a short buzzy ending
+    y(t, out) {
+      const d = 1 / birdSpeed("y");
+      note("sine", 4600, 4300, t, 0.06 * d, 0.18, out);
+      note("sine", 4600, 4300, t + 0.14 * d, 0.06 * d, 0.18, out);
+      for (let i = 0; i < 9; i++) {
+        const hi = i % 2 === 0;
+        note("sine", hi ? 5200 : 3900, hi ? 4700 : 3600, t + (0.32 + i * 0.045) * d, 0.035 * d, 0.15, out);
+      }
+      note("triangle", 3400, 3000, t + 0.75 * d, 0.18 * d, 0.08, out);
+    },
+    // Red-tailed hawk: one raspy "kee-eeee-arr" scream — quick rise, then a long slide down
+    u(t, out) {
+      const d = 1 / birdSpeed("u");
+      const len = 1.3 * d;
+      const bp = filter("bandpass", 2800, 1.1);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.4, t + 0.08 * d);
+      g.gain.setValueAtTime(0.4, t + 0.6 * d);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      bp.connect(g).connect(out);
+
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(2500, t);
+      o.frequency.exponentialRampToValueAtTime(3200, t + 0.12 * d);
+      o.frequency.exponentialRampToValueAtTime(1800, t + len);
+      // Fast wobble gives the scream its hoarse edge
+      const lfo = ctx.createOscillator();
+      const depth = ctx.createGain();
+      lfo.frequency.value = 38;
+      depth.gain.value = 120;
+      lfo.connect(depth).connect(o.frequency);
+      o.connect(bp);
+      o.start(t); o.stop(t + len + 0.02);
+      lfo.start(t); lfo.stop(t + len + 0.02);
+
+      noise(t, len).connect(filter("bandpass", 3000, 1.5)).connect(bp);
+    },
+    "3"(t) { tom("3", 0.28, 0.85, t); },
+    "4"(t) { tom("4", 0.32, 0.88, t); },
+    "5"(t) { tom("5", 0.35, 0.9, t); },
+    "6"(t) { tom("6", 0.42, 0.95, t); },
+    "7"(t) { tom("7", 0.55, 1.0, t); },
+  };
+
+  // A closed hat (or a new open hat) cuts off a ringing open hat, like a real pedal
+  let openHat = null;
+  function chokeOpenHat(t) {
+    if (!openHat) return;
+    openHat.g.gain.cancelScheduledValues(t);
+    openHat.g.gain.setValueAtTime(openHat.g.gain.value, t);
+    openHat.g.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    openHat = null;
+  }
+
+  // Tom tuning in semitones; double-click a slider to reset
+  const tomHz = { "3": [470, 330], "4": [380, 265], "5": [300, 210], "6": [220, 150], "7": [150, 95] };
+  function tomRange(k) {
+    const m = tuneRatio(k);
+    return tomHz[k].map(f => f * m);
+  }
+  function tom(k, decay, peak, t) {
+    const [start, end] = tomRange(k);
+    drum(start, end, decay, peak, t);
+  }
+
+  const tunes = {};
+  document.querySelectorAll("[data-tune]").forEach(input => {
+    const k = input.dataset.tune;
+    const out = input.nextElementSibling;
+    const hz = document.querySelector(`[data-hz="${k}"]`);
+    const update = () => {
+      const v = parseFloat(input.value);
+      tunes[k] = v;
+      out.textContent = (v > 0 ? "+" : "") + v.toFixed(1);
+      const [start, end] = tomRange(k);
+      hz.textContent = `${Math.round(start)}–${Math.round(end)} Hz`;
+    };
+    input.addEventListener("input", update);
+    input.addEventListener("dblclick", () => { input.value = 0; update(); });
+    // Keep tom keys playing instead of nudging the focused slider
+    input.addEventListener("keydown", e => { if (sounds[keyFor(e)]) e.preventDefault(); });
+    update();
+  });
+  function tuneRatio(k) { return Math.pow(2, (tunes[k] || 0) / 12); }
+
+  // Bird speed: slider runs -1..1 and maps to 0.5× – 2× (center is normal speed);
+  // double-click a slider to reset
+  const speeds = {};
+  function birdSpeed(k) { return Math.pow(2, speeds[k] || 0); }
+  document.querySelectorAll("[data-speed]").forEach(input => {
+    const k = input.dataset.speed;
+    const out = input.nextElementSibling;
+    const update = () => {
+      speeds[k] = parseFloat(input.value);
+      out.textContent = birdSpeed(k).toFixed(2) + "×";
+    };
+    input.addEventListener("input", update);
+    input.addEventListener("dblclick", () => { input.value = 0; update(); });
+    input.addEventListener("keydown", e => { if (sounds[keyFor(e)]) e.preventDefault(); });
+    update();
+  });
+
+  const pads = {};
+  document.querySelectorAll(".pad").forEach(p => pads[p.dataset.key] = p);
+  const led = document.getElementById("led");
+
+  // Bird calls restart instead of layering: each press gets a fresh output,
+  // and the previous one for that bird fades out in a few milliseconds
+  const birdKeys = ["r", "t", "y", "u"];
+  const birdOut = {};
+  function birdBus(k) {
+    const now = ctx.currentTime;
+    const old = birdOut[k];
+    if (old) {
+      old.gain.cancelScheduledValues(now);
+      old.gain.setValueAtTime(old.gain.value, now);
+      old.gain.linearRampToValueAtTime(0, now + 0.01);
+      setTimeout(() => old.disconnect(), 50);
+    }
+    const bus = ctx.createGain();
+    bus.connect(master);
+    birdOut[k] = bus;
+    return bus;
+  }
+
+  function hit(k) {
+    if (!sounds[k]) return;
+    init();
+    if (birdKeys.includes(k)) sounds[k](ctx.currentTime, birdBus(k));
+    else sounds[k](ctx.currentTime);
+    document.querySelectorAll(`.pad[data-key="${k}"]`).forEach(p => {
+      p.classList.remove("hit"); void p.offsetWidth; p.classList.add("hit");
+      clearTimeout(p._t); p._t = setTimeout(() => p.classList.remove("hit"), 90);
+    });
+    led.classList.add("on");
+    clearTimeout(led._t); led._t = setTimeout(() => led.classList.remove("on"), 70);
+  }
+
+  // Edit ride page: every ride setting as a slider plus a number box
+  const kit = document.getElementById("kit");
+  const editor = document.getElementById("rideEditor");
+  const editToggle = document.getElementById("editToggle");
+  function showEditor(editing) {
+    editor.hidden = !editing;
+    kit.hidden = editing;
+    editToggle.classList.toggle("on", editing);
+    editToggle.textContent = editing ? "Back to drums" : "Edit ride";
+  }
+  editToggle.addEventListener("click", () => showEditor(editor.hidden));
+  document.getElementById("backToKit").addEventListener("click", () => showEditor(false));
+  window.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !editor.hidden) showEditor(false);
+  });
+
+  const toneSettings = [
+    { key: "toneVolume", label: "Tone volume", min: 0, max: 0.5, step: 0.01, unit: "" },
+    { key: "toneBrightness", label: "Tone brightness", min: 0, max: 5000, step: 10, unit: "Hz cut" },
+    { key: "ringTime", label: "Ring time", min: 0.1, max: 4, step: 0.05, unit: "sec" },
+  ];
+  const washSettings = [
+    { key: "washVolume", label: "Wash volume", min: 0, max: 0.5, step: 0.01, unit: "" },
+    { key: "washBrightness", label: "Wash brightness", min: 1000, max: 12000, step: 100, unit: "Hz cut" },
+    { key: "washFade", label: "Wash fade", min: 0.1, max: 4, step: 0.05, unit: "sec" },
+  ];
+  const TONE = { min: 100, max: 6000, step: 1, maxCount: 12 };
+
+  function saveRide() {
+    try { localStorage.setItem("drumKeyRide", JSON.stringify(ride)); } catch (e) {}
+    document.getElementById("rideReadout").textContent =
+      `Tones: ${ride.tones.map(Math.round).join(", ")} Hz\n` +
+      `Tone volume ${ride.toneVolume} · tone brightness ${ride.toneBrightness} Hz · ring time ${ride.ringTime} sec\n` +
+      `Wash volume ${ride.washVolume} · wash brightness ${ride.washBrightness} Hz · wash fade ${ride.washFade} sec`;
+  }
+
+  // One row: label, slider, number box; both inputs stay in sync
+  function controlRow(label, unit, spec, value, onChange, onRemove) {
+    const row = document.createElement("div");
+    row.className = "ctl";
+    row.innerHTML = `<span>${label} <span class="unit">${unit}</span></span>
+      <input type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}">
+      <input type="number" min="${spec.min}" max="${spec.max}" step="${spec.step}">
+      <span></span>`;
+    const [range, num] = row.querySelectorAll("input");
+    range.value = num.value = value;
+    const clamp = v => Math.min(spec.max, Math.max(spec.min, v));
+    range.addEventListener("input", () => { num.value = range.value; onChange(parseFloat(range.value)); });
+    num.addEventListener("change", () => {
+      const v = clamp(parseFloat(num.value));
+      if (isNaN(v)) { num.value = range.value; return; }
+      num.value = range.value = v;
+      onChange(v);
+    });
+    num.addEventListener("keydown", e => { if (e.key === "Enter") num.blur(); });
+    // Let drum keys keep playing while a slider is focused
+    range.addEventListener("keydown", e => { if (sounds[keyFor(e)]) e.preventDefault(); });
+    if (onRemove) {
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "remove"; x.textContent = "×"; x.title = "Remove tone";
+      x.disabled = ride.tones.length <= 1;
+      x.addEventListener("click", onRemove);
+      row.lastElementChild.replaceWith(x);
+    }
+    return row;
+  }
+
+  function buildEditor() {
+    const toneRows = document.getElementById("toneRows");
+    toneRows.innerHTML = "";
+    ride.tones.forEach((f, i) => {
+      toneRows.appendChild(controlRow(`Tone ${i + 1}`, "Hz", TONE, f,
+        v => { ride.tones[i] = v; saveRide(); },
+        () => { ride.tones.splice(i, 1); buildEditor(); saveRide(); }));
+    });
+    document.getElementById("addTone").disabled = ride.tones.length >= TONE.maxCount;
+
+    [["toneControls", toneSettings], ["washControls", washSettings]].forEach(([id, list]) => {
+      const box = document.getElementById(id);
+      box.innerHTML = "";
+      list.forEach(s => box.appendChild(controlRow(s.label, s.unit, s, ride[s.key],
+        v => { ride[s.key] = v; saveRide(); })));
+    });
+  }
+
+  document.getElementById("addTone").addEventListener("click", () => {
+    if (ride.tones.length >= TONE.maxCount) return;
+    const last = ride.tones[ride.tones.length - 1] || 500;
+    ride.tones.push(Math.min(TONE.max, Math.round(last * 1.33)));
+    buildEditor(); saveRide();
+  });
+  document.getElementById("resetRide").addEventListener("click", () => {
+    Object.assign(ride, JSON.parse(JSON.stringify(rideDefaults)));
+    buildEditor(); saveRide();
+  });
+  buildEditor(); saveRide();
+
+
+  // Extra keys that play the same drum as another key
+  const aliases = { n: "c", b: "v" };
+  function keyFor(e) {
+    const k = e.key.toLowerCase();
+    return aliases[k] || k;
+  }
+
+  window.addEventListener("keydown", e => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    // Typing a value in a number box shouldn't trigger drums
+    if (e.target.matches && e.target.matches('input[type="number"]')) return;
+    const k = keyFor(e);
+    if (sounds[k]) { e.preventDefault(); hit(k); }
+  });
+
+  document.querySelectorAll(".pad").forEach(p => {
+    p.addEventListener("pointerdown", e => { e.preventDefault(); hit(p.dataset.key); });
+  });
+</script>
+</body>
+</html>
